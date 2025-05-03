@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iTabs AI Content Generator</title>
+    <style>
+        :root {
+            --primary-color: #4066E0;
+            --secondary-color: #5D7DF9;
+            --background-color: #f5f5f5;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .input-section {
+            flex: 1;
+            min-width: 300px;
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .preview-section {
+            flex: 2;
+            min-width: 400px;
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .section-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tabs-container {
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .tabs-nav {
+            display: flex;
+            background-color: #f0f0f0;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+        }
+
+        .tab.active {
+            border-bottom: 3px solid var(--primary-color);
+            color: var(--primary-color);
+            background-color: white;
+        }
+
+        .tab-content {
+            padding: 20px;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        #generated-code {
+            background-color: #f7f7f7;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        .copy-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .success-message {
+            display: none;
+            background-color: #4caf50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>iTabs AI Content Generator</h1>
+            <p>Automatically generate rich, interactive iTabs content from any URL</p>
+        </header>
+
+        <div class="main-content">
+            <div class="input-section">
+                <h2 class="section-title">Input</h2>
+                <form id="itabs-form">
+                    <div class="form-group">
+                        <label for="url-input">Product or Content URL</label>
+                        <input type="url" id="url-input" placeholder="Enter URL (e.g., Amazon product page)" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="content-type">Content Type</label>
+                        <select id="content-type">
+                            <option value="product">Product</option>
+                            <option value="article">Article or Blog Post</option>
+                            <option value="service">Service</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="additional-info">Additional Information (Optional)</label>
+                        <textarea id="additional-info" placeholder="Add any specific details or preferences for the generated content..."></textarea>
+                    </div>
+
+                    <button type="submit" id="generate-button">Generate iTabs Content</button>
+                </form>
+            </div>
+
+            <div class="preview-section">
+                <h2 class="section-title">Preview</h2>
+                
+                <div class="loading" id="loading-indicator">
+                    <div class="loader"></div>
+                    <p>Analyzing content and generating iTabs...</p>
+                </div>
+
+                <div id="preview-content">
+                    <p>Your generated iTabs preview will appear here...</p>
+                    
+                    <div class="tabs-container" id="tabs-preview" style="display: none;">
+                        <div class="tabs-nav">
+                            <button class="tab active" data-tab="overview">Overview</button>
+                            <button class="tab" data-tab="features">Features</button>
+                            <button class="tab" data-tab="specs">Specifications</button>
+                            <button class="tab" data-tab="reviews">Reviews</button>
+                        </div>
+
+                        <div class="tab-content active" id="overview">
+                            <p>Overview content will appear here...</p>
+                        </div>
+
+                        <div class="tab-content" id="features">
+                            <p>Features content will appear here...</p>
+                        </div>
+
+                        <div class="tab-content" id="specs">
+                            <p>Specifications content will appear here...</p>
+                        </div>
+
+                        <div class="tab-content" id="reviews">
+                            <p>Reviews content will appear here...</p>
+                        </div>
+                    </div>
+
+                    <div id="code-section" style="display: none;">
+                        <h3 style="margin-top: 20px;">Embed Code</h3>
+                        <pre id="generated-code"><!-- Generated code will appear here --></pre>
+                        <button class="copy-button" id="copy-code">Copy Code</button>
+                        <div class="success-message" id="copy-success">Code copied to clipboard!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Remove active class from all tabs
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab
+                this.classList.add('active');
+                
+                // Show corresponding content
+                const tabId = this.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // Form submission
+        document.getElementById('itabs-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form values
+            const url = document.getElementById('url-input').value;
+            const contentType = document.getElementById('content-type').value;
+            const additionalInfo = document.getElementById('additional-info').value;
+            
+            // Show loading indicator
+            document.getElementById('loading-indicator').style.display = 'block';
+            document.getElementById('preview-content').style.display = 'none';
+            
+            // Simulate AI processing (in a real app, this would call your backend API)
+            setTimeout(function() {
+                // Hide loading indicator
+                document.getElementById('loading-indicator').style.display = 'none';
+                document.getElementById('preview-content').style.display = 'block';
+                
+                // Show tabs preview and code section
+                document.getElementById('tabs-preview').style.display = 'block';
+                document.getElementById('code-section').style.display = 'block';
+                
+                // Generate sample content based on content type
+                generateSampleContent(url, contentType);
+            }, 2000); // Simulate 2 second processing time
+        });
+
+        // Copy code functionality
+        document.getElementById('copy-code').addEventListener('click', function() {
+            const codeElement = document.getElementById('generated-code');
+            const textArea = document.createElement('textarea');
+            textArea.value = codeElement.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            // Show success message
+            const successMessage = document.getElementById('copy-success');
+            successMessage.style.display = 'block';
+            setTimeout(function() {
+                successMessage.style.display = 'none';
+            }, 2000);
+        });
+
+        // Generate sample content (this would be replaced with actual AI-generated content)
+        function generateSampleContent(url, contentType) {
+            let title, overview, features, specs, reviews;
+            
+            if (contentType === 'product') {
+                title = "Smart Fitness Watch X1";
+                overview = "The Smart Fitness Watch X1 is the ultimate fitness companion, featuring advanced health monitoring, workout tracking, and smart notifications. With its sleek design and long battery life, it's perfect for active lifestyles.";
+                features = "<ul><li>24/7 heart rate monitoring</li><li>Sleep quality analysis</li><li>50+ workout modes</li><li>Water resistant up to 50m</li><li>5-day battery life</li><li>Smart notifications from your phone</li></ul>";
+                specs = "<table style='width:100%; border-collapse: collapse;'><tr><th style='text-align:left; padding:8px; border-bottom:1px solid #ddd;'>Specification</th><th style='text-align:left; padding:8px; border-bottom:1px solid #ddd;'>Value</th></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Display</td><td style='padding:8px; border-bottom:1px solid #ddd;'>1.3\" AMOLED Touchscreen</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Battery Life</td><td style='padding:8px; border-bottom:1px solid #ddd;'>Up to 5 days</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Water Resistance</td><td style='padding:8px; border-bottom:1px solid #ddd;'>5 ATM (50m)</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Connectivity</td><td style='padding:8px; border-bottom:1px solid #ddd;'>Bluetooth 5.0, WiFi</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Sensors</td><td style='padding:8px; border-bottom:1px solid #ddd;'>Heart rate, accelerometer, gyroscope, altimeter</td></tr></table>";
+                reviews = "<div><p>⭐⭐⭐⭐⭐ \"The best fitness watch I've ever owned! Battery life is amazing.\" - John D.</p><p>⭐⭐⭐⭐ \"Great features and accurate tracking, but the app could be more intuitive.\" - Sarah M.</p><p>⭐⭐⭐⭐⭐ \"Perfect for swimming and running. Highly recommend!\" - Michael T.</p></div>";
+            } else if (contentType === 'article') {
+                title = "10 Essential Tips for Sustainable Living";
+                overview = "This comprehensive guide explores practical, everyday actions you can take to reduce your environmental impact and live more sustainably. From energy conservation to mindful consumption, these tips are both impactful and accessible.";
+                features = "<h3>Key Takeaways</h3><ul><li>Small changes in daily habits can significantly reduce your carbon footprint</li><li>Sustainable living often leads to cost savings</li><li>Community involvement amplifies individual environmental efforts</li><li>Mindful consumption is the foundation of sustainable living</li></ul>";
+                specs = "<h3>Topics Covered</h3><ul><li>Energy conservation at home</li><li>Reducing food waste</li><li>Sustainable transportation options</li><li>Ethical shopping practices</li><li>Water conservation techniques</li><li>Community environmental initiatives</li></ul>";
+                reviews = "<div><p>\"This article transformed my approach to daily living. Highly recommended reading!\" - Environmental Today</p><p>\"Practical, actionable advice that anyone can implement immediately.\" - Green Living Magazine</p></div>";
+            } else if (contentType === 'service') {
+                title = "Premium Website Design & Development";
+                overview = "Our professional website design and development service delivers stunning, functional websites tailored to your business needs. With a focus on user experience, SEO, and mobile responsiveness, we help your business establish a powerful online presence.";
+                features = "<h3>Service Highlights</h3><ul><li>Custom design tailored to your brand</li><li>Responsive mobile-first approach</li><li>SEO-optimized structure</li><li>Fast loading performance</li><li>Secure implementation</li><li>Content management system integration</li></ul>";
+                specs = "<h3>Process</h3><ol><li><strong>Discovery:</strong> Understanding your business goals and requirements</li><li><strong>Planning:</strong> Sitemap and wireframe development</li><li><strong>Design:</strong> Creating visual mockups</li><li><strong>Development:</strong> Building the functional website</li><li><strong>Testing:</strong> Ensuring everything works perfectly</li><li><strong>Launch:</strong> Going live with your new website</li></ol>";
+                reviews = "<div><p>⭐⭐⭐⭐⭐ \"The team delivered beyond our expectations. Our new website has increased conversions by 45%!\" - TechStart Inc.</p><p>⭐⭐⭐⭐⭐ \"Professional, responsive, and incredibly talented. Highly recommend their services.\" - Global Solutions Ltd.</p></div>";
+            }
+            
+            // Update tab contents
+            document.getElementById('overview').innerHTML = `<h3>${title}</h3><p>${overview}</p>`;
+            document.getElementById('features').innerHTML = features;
+            document.getElementById('specs').innerHTML = specs;
+            document.getElementById('reviews').innerHTML = reviews;
+            
+            // Generate sample embed code
+            const embedCode = `<!-- iTabs Embed Code for ${title} -->
+<div class="itabs-container" data-itabs-id="sample123">
+  <div class="itabs-nav">
+    <button class="itab-button active" data-tab="overview">Overview</button>
+    <button class="itab-button" data-tab="features">Features</button>
+    <button class="itab-button" data-tab="specs">Specifications</button>
+    <button class="itab-button" data-tab="reviews">Reviews</button>
+  </div>
+  <div class="itabs-content">
+    <div class="itab-pane active" id="overview">
+      <!-- Overview content -->
+    </div>
+    <div class="itab-pane" id="features">
+      <!-- Features content -->
+    </div>
+    <div class="itab-pane" id="specs">
+      <!-- Specifications content -->
+    </div>
+    <div class="itab-pane" id="reviews">
+      <!-- Reviews content -->
+    </div>
+  </div>
+</div>
+<script src="https://itabs.co/embed.js"></script>`;
+            
+            document.getElementById('generated-code').textContent = embedCode;
+        }
+    </script>
+</body>
+</html>
