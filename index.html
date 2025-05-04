@@ -157,6 +157,7 @@
         .tabs-nav {
             display: flex;
             background-color: #f0f0f0;
+            flex-wrap: wrap;
         }
 
         .tab {
@@ -214,9 +215,47 @@
             text-align: center;
         }
 
+        .error-message {
+            display: none;
+            background-color: #f44336;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .source-url {
+            display: none;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .source-url a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .source-url a:hover {
+            text-decoration: underline;
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 flex-direction: column;
+            }
+            
+            .tabs-nav {
+                flex-wrap: wrap;
+            }
+            
+            .tab {
+                flex-grow: 1;
+                text-align: center;
+                font-size: 14px;
+                padding: 10px;
             }
         }
     </style>
@@ -243,6 +282,7 @@
                             <option value="product">Product</option>
                             <option value="article">Article or Blog Post</option>
                             <option value="service">Service</option>
+                            <option value="general">General Website</option>
                         </select>
                     </div>
 
@@ -263,33 +303,22 @@
                     <p>Analyzing content and generating iTabs...</p>
                 </div>
 
+                <div class="error-message" id="error-message"></div>
+
                 <div id="preview-content">
-                    <p>Your generated iTabs preview will appear here...</p>
+                    <p id="initial-message">Your generated iTabs preview will appear here...</p>
                     
                     <div class="tabs-container" id="tabs-preview" style="display: none;">
-                        <div class="tabs-nav">
-                            <button class="tab active" data-tab="overview">Overview</button>
-                            <button class="tab" data-tab="features">Features</button>
-                            <button class="tab" data-tab="specs">Specifications</button>
-                            <button class="tab" data-tab="reviews">Reviews</button>
+                        <div class="tabs-nav" id="tabs-nav">
+                            <!-- Tabs will be generated dynamically -->
                         </div>
 
-                        <div class="tab-content active" id="overview">
-                            <p>Overview content will appear here...</p>
-                        </div>
-
-                        <div class="tab-content" id="features">
-                            <p>Features content will appear here...</p>
-                        </div>
-
-                        <div class="tab-content" id="specs">
-                            <p>Specifications content will appear here...</p>
-                        </div>
-
-                        <div class="tab-content" id="reviews">
-                            <p>Reviews content will appear here...</p>
+                        <div id="tab-contents">
+                            <!-- Tab contents will be generated dynamically -->
                         </div>
                     </div>
+
+                    <div class="source-url" id="source-url"></div>
 
                     <div id="code-section" style="display: none;">
                         <h3 style="margin-top: 20px;">Embed Code</h3>
@@ -303,126 +332,286 @@
     </div>
 
     <script>
-        // Tab switching functionality
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                // Remove active class from all tabs
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
-                // Add active class to clicked tab
-                this.classList.add('active');
-                
-                // Show corresponding content
-                const tabId = this.getAttribute('data-tab');
-                document.getElementById(tabId).classList.add('active');
-            });
-        });
+        // Elements
+        const itabsForm = document.getElementById('itabs-form');
+        const urlInput = document.getElementById('url-input');
+        const contentType = document.getElementById('content-type');
+        const additionalInfo = document.getElementById('additional-info');
+        const generateButton = document.getElementById('generate-button');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const errorMessage = document.getElementById('error-message');
+        const previewContent = document.getElementById('preview-content');
+        const initialMessage = document.getElementById('initial-message');
+        const tabsPreview = document.getElementById('tabs-preview');
+        const tabsNav = document.getElementById('tabs-nav');
+        const tabContents = document.getElementById('tab-contents');
+        const sourceUrl = document.getElementById('source-url');
+        const codeSection = document.getElementById('code-section');
+        const generatedCode = document.getElementById('generated-code');
+        const copyCode = document.getElementById('copy-code');
+        const copySuccess = document.getElementById('copy-success');
+
+        // Your n8n webhook URL
+        const webhookUrl = 'https://itabs002.app.n8n.cloud/webhook-test/a67f8bf7-47ea-4fac-a10d-06a787d26199';
 
         // Form submission
-        document.getElementById('itabs-form').addEventListener('submit', function(e) {
+        itabsForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             // Get form values
-            const url = document.getElementById('url-input').value;
-            const contentType = document.getElementById('content-type').value;
-            const additionalInfo = document.getElementById('additional-info').value;
+            const url = urlInput.value.trim();
+            const type = contentType.value;
+            const info = additionalInfo.value.trim();
             
-            // Show loading indicator
-            document.getElementById('loading-indicator').style.display = 'block';
-            document.getElementById('preview-content').style.display = 'none';
+            // Basic URL validation
+            if (!url || !isValidUrl(url)) {
+                showError('Please enter a valid URL (e.g., https://example.com)');
+                return;
+            }
             
-            // Simulate AI processing (in a real app, this would call your backend API)
-            setTimeout(function() {
+            // Show loading indicator, hide error and preview
+            errorMessage.style.display = 'none';
+            loadingIndicator.style.display = 'block';
+            initialMessage.style.display = 'block';
+            tabsPreview.style.display = 'none';
+            sourceUrl.style.display = 'none';
+            codeSection.style.display = 'none';
+            
+            try {
+                // Create the final URL with the webpage URL as a parameter
+                // and content type and additional info if provided
+                let finalUrl = `${webhookUrl}?url=${encodeURIComponent(url)}`;
+                
+                if (type) {
+                    finalUrl += `&type=${encodeURIComponent(type)}`;
+                }
+                
+                if (info) {
+                    finalUrl += `&info=${encodeURIComponent(info)}`;
+                }
+                
+                // Call the n8n webhook
+                const response = await fetch(finalUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status} - ${response.statusText}`);
+                }
+                
+                let data;
+                const contentType = response.headers.get('content-type');
+                
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    // If not JSON, try to parse it as JSON anyway (sometimes servers send JSON with wrong content-type)
+                    const text = await response.text();
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        // If not parseable as JSON, treat it as plain text
+                        data = {
+                            Overview: text,
+                            "Key Points": "No key points available.",
+                            Details: "No details available.",
+                            "Related Topics": "No related topics available.",
+                            FAQ: "No FAQ available."
+                        };
+                    }
+                }
+                
+                // Process and display the iTabs
+                renderITabs(data, url);
+                
                 // Hide loading indicator
-                document.getElementById('loading-indicator').style.display = 'none';
-                document.getElementById('preview-content').style.display = 'block';
+                loadingIndicator.style.display = 'none';
                 
-                // Show tabs preview and code section
-                document.getElementById('tabs-preview').style.display = 'block';
-                document.getElementById('code-section').style.display = 'block';
-                
-                // Generate sample content based on content type
-                generateSampleContent(url, contentType);
-            }, 2000); // Simulate 2 second processing time
+            } catch (error) {
+                // Hide loading indicator and show error message
+                loadingIndicator.style.display = 'none';
+                showError(`Failed to generate iTabs: ${error.message}`);
+                console.error('Error:', error);
+            }
         });
 
+        // Validate URL
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        // Render iTabs
+        function renderITabs(data, url) {
+            // Clear previous content
+            tabsNav.innerHTML = '';
+            tabContents.innerHTML = '';
+            
+            // Hide initial message and show tabs container
+            initialMessage.style.display = 'none';
+            tabsPreview.style.display = 'block';
+            
+            // Add source URL
+            sourceUrl.innerHTML = `Source: <a href="${url}" target="_blank">${url}</a>`;
+            sourceUrl.style.display = 'block';
+            
+            // Check if data is an object
+            if (typeof data !== 'object' || data === null) {
+                // Convert to object if not already
+                data = {
+                    "Overview": data.toString(),
+                    "Key Points": "No key points available.",
+                    "Details": "No details available.",
+                    "Related Topics": "No related topics available.",
+                    "FAQ": "No FAQ available."
+                };
+            }
+            
+            // Create tabs
+            let isFirstTab = true;
+            
+            for (const [tabName, content] of Object.entries(data)) {
+                // Skip if content is empty or undefined
+                if (!content) continue;
+                
+                // Format tab name (remove quotes, convert camelCase to spaces)
+                const formattedTabName = formatTabName(tabName);
+                const tabId = formattedTabName.toLowerCase().replace(/\s+/g, '-');
+                
+                // Create tab button
+                const tab = document.createElement('button');
+                tab.className = `tab ${isFirstTab ? 'active' : ''}`;
+                tab.textContent = formattedTabName;
+                tab.dataset.tab = tabId;
+                
+                // Create tab content
+                const tabContent = document.createElement('div');
+                tabContent.className = `tab-content ${isFirstTab ? 'active' : ''}`;
+                tabContent.id = tabId;
+                
+                // Format content based on its type
+                let formattedContent;
+                if (typeof content === 'string') {
+                    formattedContent = formatContent(content);
+                } else {
+                    formattedContent = `<pre>${JSON.stringify(content, null, 2)}</pre>`;
+                }
+                
+                tabContent.innerHTML = formattedContent;
+                
+                // Add to DOM
+                tabsNav.appendChild(tab);
+                tabContents.appendChild(tabContent);
+                
+                // Add click event for tab
+                tab.addEventListener('click', function() {
+                    // Remove active class from all tabs
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to this tab
+                    this.classList.add('active');
+                    document.getElementById(tabId).classList.add('active');
+                });
+                
+                isFirstTab = false;
+            }
+            
+            // Generate and show embed code
+            generateEmbedCode(data, url);
+            codeSection.style.display = 'block';
+        }
+
+        // Format tab name
+        function formatTabName(name) {
+            // Remove quotes if present
+            name = name.replace(/["']/g, '');
+            
+            // Handle camelCase and snake_case
+            return name
+                .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+                .replace(/_/g, ' ') // Replace underscores with spaces
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize each word
+                .join(' ')
+                .trim();
+        }
+
+        // Format content
+        function formatContent(content) {
+            if (typeof content !== 'string') {
+                return `<pre>${JSON.stringify(content, null, 2)}</pre>`;
+            }
+            
+            // Convert URLs to links
+            content = content.replace(
+                /(https?:\/\/[^\s]+)/g,
+                url => `<a href="${url}" target="_blank">${url}</a>`
+            );
+            
+            // Convert plain text to HTML with paragraphs
+            return content
+                .split('\n\n')
+                .map(paragraph => paragraph.trim() ? `<p>${paragraph}</p>` : '')
+                .join('');
+        }
+
+        // Generate embed code
+        function generateEmbedCode(data, url) {
+            // Create base HTML structure
+            let tabButtons = '';
+            let tabContents = '';
+            
+            // Generate tab buttons and content divs
+            for (const [tabName, content] of Object.entries(data)) {
+                if (!content) continue;
+                
+                const formattedTabName = formatTabName(tabName);
+                const tabId = formattedTabName.toLowerCase().replace(/\s+/g, '-');
+                const isFirst = tabButtons === ''; // First tab
+                
+                tabButtons += `    <button class="itab-button${isFirst ? ' active' : ''}" data-tab="${tabId}">${formattedTabName}</button>\n`;
+                tabContents += `    <div class="itab-pane${isFirst ? ' active' : ''}" id="${tabId}">\n`;
+                tabContents += `      <!-- ${formattedTabName} content -->\n`;
+                tabContents += `    </div>\n`;
+            }
+            
+            // Combine everything into final embed code
+            const embedCode = `<!-- iTabs Embed Code for ${url} -->
+<div class="itabs-container" data-itabs-id="${Date.now()}">
+  <div class="itabs-nav">
+${tabButtons}  </div>
+  <div class="itabs-content">
+${tabContents}  </div>
+</div>
+<script src="https://itabs.co/embed.js"></script>`;
+            
+            generatedCode.textContent = embedCode;
+        }
+
         // Copy code functionality
-        document.getElementById('copy-code').addEventListener('click', function() {
-            const codeElement = document.getElementById('generated-code');
+        copyCode.addEventListener('click', function() {
             const textArea = document.createElement('textarea');
-            textArea.value = codeElement.textContent;
+            textArea.value = generatedCode.textContent;
             document.body.appendChild(textArea);
             textArea.select();
             document.execCommand('copy');
             document.body.removeChild(textArea);
             
             // Show success message
-            const successMessage = document.getElementById('copy-success');
-            successMessage.style.display = 'block';
+            copySuccess.style.display = 'block';
             setTimeout(function() {
-                successMessage.style.display = 'none';
+                copySuccess.style.display = 'none';
             }, 2000);
         });
-
-        // Generate sample content (this would be replaced with actual AI-generated content)
-        function generateSampleContent(url, contentType) {
-            let title, overview, features, specs, reviews;
-            
-            if (contentType === 'product') {
-                title = "Smart Fitness Watch X1";
-                overview = "The Smart Fitness Watch X1 is the ultimate fitness companion, featuring advanced health monitoring, workout tracking, and smart notifications. With its sleek design and long battery life, it's perfect for active lifestyles.";
-                features = "<ul><li>24/7 heart rate monitoring</li><li>Sleep quality analysis</li><li>50+ workout modes</li><li>Water resistant up to 50m</li><li>5-day battery life</li><li>Smart notifications from your phone</li></ul>";
-                specs = "<table style='width:100%; border-collapse: collapse;'><tr><th style='text-align:left; padding:8px; border-bottom:1px solid #ddd;'>Specification</th><th style='text-align:left; padding:8px; border-bottom:1px solid #ddd;'>Value</th></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Display</td><td style='padding:8px; border-bottom:1px solid #ddd;'>1.3\" AMOLED Touchscreen</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Battery Life</td><td style='padding:8px; border-bottom:1px solid #ddd;'>Up to 5 days</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Water Resistance</td><td style='padding:8px; border-bottom:1px solid #ddd;'>5 ATM (50m)</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Connectivity</td><td style='padding:8px; border-bottom:1px solid #ddd;'>Bluetooth 5.0, WiFi</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Sensors</td><td style='padding:8px; border-bottom:1px solid #ddd;'>Heart rate, accelerometer, gyroscope, altimeter</td></tr></table>";
-                reviews = "<div><p>⭐⭐⭐⭐⭐ \"The best fitness watch I've ever owned! Battery life is amazing.\" - John D.</p><p>⭐⭐⭐⭐ \"Great features and accurate tracking, but the app could be more intuitive.\" - Sarah M.</p><p>⭐⭐⭐⭐⭐ \"Perfect for swimming and running. Highly recommend!\" - Michael T.</p></div>";
-            } else if (contentType === 'article') {
-                title = "10 Essential Tips for Sustainable Living";
-                overview = "This comprehensive guide explores practical, everyday actions you can take to reduce your environmental impact and live more sustainably. From energy conservation to mindful consumption, these tips are both impactful and accessible.";
-                features = "<h3>Key Takeaways</h3><ul><li>Small changes in daily habits can significantly reduce your carbon footprint</li><li>Sustainable living often leads to cost savings</li><li>Community involvement amplifies individual environmental efforts</li><li>Mindful consumption is the foundation of sustainable living</li></ul>";
-                specs = "<h3>Topics Covered</h3><ul><li>Energy conservation at home</li><li>Reducing food waste</li><li>Sustainable transportation options</li><li>Ethical shopping practices</li><li>Water conservation techniques</li><li>Community environmental initiatives</li></ul>";
-                reviews = "<div><p>\"This article transformed my approach to daily living. Highly recommended reading!\" - Environmental Today</p><p>\"Practical, actionable advice that anyone can implement immediately.\" - Green Living Magazine</p></div>";
-            } else if (contentType === 'service') {
-                title = "Premium Website Design & Development";
-                overview = "Our professional website design and development service delivers stunning, functional websites tailored to your business needs. With a focus on user experience, SEO, and mobile responsiveness, we help your business establish a powerful online presence.";
-                features = "<h3>Service Highlights</h3><ul><li>Custom design tailored to your brand</li><li>Responsive mobile-first approach</li><li>SEO-optimized structure</li><li>Fast loading performance</li><li>Secure implementation</li><li>Content management system integration</li></ul>";
-                specs = "<h3>Process</h3><ol><li><strong>Discovery:</strong> Understanding your business goals and requirements</li><li><strong>Planning:</strong> Sitemap and wireframe development</li><li><strong>Design:</strong> Creating visual mockups</li><li><strong>Development:</strong> Building the functional website</li><li><strong>Testing:</strong> Ensuring everything works perfectly</li><li><strong>Launch:</strong> Going live with your new website</li></ol>";
-                reviews = "<div><p>⭐⭐⭐⭐⭐ \"The team delivered beyond our expectations. Our new website has increased conversions by 45%!\" - TechStart Inc.</p><p>⭐⭐⭐⭐⭐ \"Professional, responsive, and incredibly talented. Highly recommend their services.\" - Global Solutions Ltd.</p></div>";
-            }
-            
-            // Update tab contents
-            document.getElementById('overview').innerHTML = `<h3>${title}</h3><p>${overview}</p>`;
-            document.getElementById('features').innerHTML = features;
-            document.getElementById('specs').innerHTML = specs;
-            document.getElementById('reviews').innerHTML = reviews;
-            
-            // Generate sample embed code
-            const embedCode = `<!-- iTabs Embed Code for ${title} -->
-<div class="itabs-container" data-itabs-id="sample123">
-  <div class="itabs-nav">
-    <button class="itab-button active" data-tab="overview">Overview</button>
-    <button class="itab-button" data-tab="features">Features</button>
-    <button class="itab-button" data-tab="specs">Specifications</button>
-    <button class="itab-button" data-tab="reviews">Reviews</button>
-  </div>
-  <div class="itabs-content">
-    <div class="itab-pane active" id="overview">
-      <!-- Overview content -->
-    </div>
-    <div class="itab-pane" id="features">
-      <!-- Features content -->
-    </div>
-    <div class="itab-pane" id="specs">
-      <!-- Specifications content -->
-    </div>
-    <div class="itab-pane" id="reviews">
-      <!-- Reviews content -->
-    </div>
-  </div>
-</div>
-<script src="https://itabs.co/embed.js"></script>`;
-            
-            document.getElementById('generated-code').textContent = embedCode;
-        }
     </script>
 </body>
 </html>
