@@ -314,180 +314,290 @@
 
     <script>
         // Elements
-        const itabsForm = document.getElementById('itabs-form');
-        const urlInput = document.getElementById('url-input');
-        const contentType = document.getElementById('content-type');
-        const additionalInfo = document.getElementById('additional-info');
-        const generateButton = document.getElementById('generate-button');
-        const loadingIndicator = document.getElementById('loading-indicator');
-        const errorMessage = document.getElementById('error-message');
-        const previewContent = document.getElementById('preview-content');
-        const initialMessage = document.getElementById('initial-message');
-        const tabsPreview = document.getElementById('tabs-preview');
-        const tabsNav = document.getElementById('tabs-nav');
-        const tabContents = document.getElementById('tab-contents');
-        const codeSection = document.getElementById('code-section');
-        const generatedCode = document.getElementById('generated-code');
-        const copyCode = document.getElementById('copy-code');
-        const copySuccess = document.getElementById('copy-success');
+const itabsForm = document.getElementById('itabs-form');
+const urlInput = document.getElementById('url-input');
+const contentType = document.getElementById('content-type');
+const additionalInfo = document.getElementById('additional-info');
+const generateButton = document.getElementById('generate-button');
+const loadingIndicator = document.getElementById('loading-indicator');
+const errorMessage = document.getElementById('error-message');
+const previewContent = document.getElementById('preview-content');
+const initialMessage = document.getElementById('initial-message');
+const tabsPreview = document.getElementById('tabs-preview');
+const tabsNav = document.getElementById('tabs-nav');
+const tabContents = document.getElementById('tab-contents');
+const codeSection = document.getElementById('code-section');
+const generatedCode = document.getElementById('generated-code');
+const copyCode = document.getElementById('copy-code');
+const copySuccess = document.getElementById('copy-success');
 
-        // Your n8n webhook URL - REPLACE THIS WITH YOUR ACTUAL WEBHOOK URL
-        const webhookUrl = 'https://itabs002.app.n8n.cloud/webhook-test/a67f8bf7-47ea-4fac-a10d-06a787d26199';
+// Your n8n webhook URL
+const webhookUrl = 'https://itabs002.app.n8n.cloud/webhook-test/f98f4e10-9b27-46be-9faf-b72f56339240';
 
-        // Form submission
-        itabsForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Get form values
-            const url = urlInput.value.trim();
-            const type = contentType.value;
-            const info = additionalInfo.value.trim();
-            
-            // Basic URL validation
-            if (!url || !isValidUrl(url)) {
-                showError('Please enter a valid URL (e.g., https://example.com)');
-                return;
-            }
-            
-            // Show loading indicator, hide error and preview
-            errorMessage.style.display = 'none';
-            loadingIndicator.style.display = 'block';
-            initialMessage.style.display = 'none';
-            tabsPreview.style.display = 'none';
-            codeSection.style.display = 'none';
-            
-            // For demo purposes, simulate API call with sample data
-            // In a real implementation, this would be an actual fetch call to your n8n webhook
-            setTimeout(function() {
-                // Hide loading
-                loadingIndicator.style.display = 'none';
-                
-                // Show sample data based on content type
-                displaySampleData(url, type);
-            }, 2000);
-        });
-
-        // Validate URL
-        function isValidUrl(string) {
-            try {
-                new URL(string);
-                return true;
-            } catch (_) {
-                return false;
-            }
+// Form submission
+itabsForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Get form values
+    const url = urlInput.value.trim();
+    const type = contentType.value;
+    const info = additionalInfo.value.trim();
+    
+    // Basic URL validation
+    if (!url || !isValidUrl(url)) {
+        showError('Please enter a valid URL (e.g., https://example.com)');
+        return;
+    }
+    
+    // Show loading indicator, hide error and preview
+    errorMessage.style.display = 'none';
+    loadingIndicator.style.display = 'block';
+    initialMessage.style.display = 'none';
+    tabsPreview.style.display = 'none';
+    codeSection.style.display = 'none';
+    
+    // Send request to n8n webhook
+    fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            url: url,
+            type: type,
+            additionalInfo: info
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.status);
         }
-
+        return response.json();
+    })
+    .then(data => {
+        // Hide loading
+        loadingIndicator.style.display = 'none';
+        
+        // Process and display the returned iTabs data
+        displayGeneratedTabs(data, url);
+    })
+    .catch(error => {
+        // Hide loading
+        loadingIndicator.style.display = 'none';
+        
         // Show error message
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
+        showError('Error generating iTabs: ' + error.message);
+        console.error('Error:', error);
+        
+        // For demo purposes, show sample data if API fails
+        if (confirm('API request failed. Would you like to see sample data instead?')) {
+            displaySampleData(url, type);
         }
+    });
+});
 
-        // Display sample data (for demo)
-        function displaySampleData(url, contentType) {
-            // Clear previous content
-            tabsNav.innerHTML = '';
-            tabContents.innerHTML = '';
-            
-            // Create sample data based on content type
-            let sampleData;
-            
-            if (contentType === 'product') {
-                sampleData = {
-                    "Overview": "The Smart Fitness Watch X1 is the ultimate fitness companion, featuring advanced health monitoring, workout tracking, and smart notifications. With its sleek design and long battery life, it's perfect for active lifestyles.",
-                    "Features": "<ul><li>24/7 heart rate monitoring</li><li>Sleep quality analysis</li><li>50+ workout modes</li><li>Water resistant up to 50m</li><li>5-day battery life</li><li>Smart notifications from your phone</li></ul>",
-                    "Specifications": "<table style='width:100%; border-collapse: collapse;'><tr><th style='text-align:left; padding:8px; border-bottom:1px solid #ddd;'>Specification</th><th style='text-align:left; padding:8px; border-bottom:1px solid #ddd;'>Value</th></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Display</td><td style='padding:8px; border-bottom:1px solid #ddd;'>1.3\" AMOLED Touchscreen</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Battery Life</td><td style='padding:8px; border-bottom:1px solid #ddd;'>Up to 5 days</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Water Resistance</td><td style='padding:8px; border-bottom:1px solid #ddd;'>5 ATM (50m)</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Connectivity</td><td style='padding:8px; border-bottom:1px solid #ddd;'>Bluetooth 5.0, WiFi</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Sensors</td><td style='padding:8px; border-bottom:1px solid #ddd;'>Heart rate, accelerometer, gyroscope, altimeter</td></tr></table>",
-                    "Reviews": "<div><p>⭐⭐⭐⭐⭐ \"The best fitness watch I've ever owned! Battery life is amazing.\" - John D.</p><p>⭐⭐⭐⭐ \"Great features and accurate tracking, but the app could be more intuitive.\" - Sarah M.</p><p>⭐⭐⭐⭐⭐ \"Perfect for swimming and running. Highly recommend!\" - Michael T.</p></div>"
-                };
-            } else if (contentType === 'article') {
-                sampleData = {
-                    "Overview": "This comprehensive guide explores practical, everyday actions you can take to reduce your environmental impact and live more sustainably. From energy conservation to mindful consumption, these tips are both impactful and accessible.",
-                    "Key Points": "<h3>Key Takeaways</h3><ul><li>Small changes in daily habits can significantly reduce your carbon footprint</li><li>Sustainable living often leads to cost savings</li><li>Community involvement amplifies individual environmental efforts</li><li>Mindful consumption is the foundation of sustainable living</li></ul>",
-                    "Details": "<h3>Topics Covered</h3><ul><li>Energy conservation at home</li><li>Reducing food waste</li><li>Sustainable transportation options</li><li>Ethical shopping practices</li><li>Water conservation techniques</li><li>Community environmental initiatives</li></ul>",
-                    "Related Topics": "<ul><li>Climate Change Mitigation</li><li>Zero Waste Movement</li><li>Renewable Energy Solutions</li><li>Sustainable Fashion</li><li>Plant-Based Diets</li></ul>",
-                    "FAQ": "<p><strong>Q: What is the single most effective way to reduce my carbon footprint?</strong><br>A: While there's no one-size-fits-all answer, reducing meat consumption and minimizing car travel typically offer the biggest impact for most individuals.</p><p><strong>Q: How can I practice sustainable living on a budget?</strong><br>A: Focus on reducing consumption rather than buying new 'eco' products. Using less, repairing items, and buying secondhand are all budget-friendly sustainable practices.</p>"
-                };
-            } else if (contentType === 'service') {
-                sampleData = {
-                    "Overview": "Our professional website design and development service delivers stunning, functional websites tailored to your business needs. With a focus on user experience, SEO, and mobile responsiveness, we help your business establish a powerful online presence.",
-                    "Features": "<h3>Service Highlights</h3><ul><li>Custom design tailored to your brand</li><li>Responsive mobile-first approach</li><li>SEO-optimized structure</li><li>Fast loading performance</li><li>Secure implementation</li><li>Content management system integration</li></ul>",
-                    "Process": "<h3>Our Approach</h3><ol><li><strong>Discovery:</strong> Understanding your business goals and requirements</li><li><strong>Planning:</strong> Sitemap and wireframe development</li><li><strong>Design:</strong> Creating visual mockups</li><li><strong>Development:</strong> Building the functional website</li><li><strong>Testing:</strong> Ensuring everything works perfectly</li><li><strong>Launch:</strong> Going live with your new website</li></ol>",
-                    "Testimonials": "<div><p>⭐⭐⭐⭐⭐ \"The team delivered beyond our expectations. Our new website has increased conversions by 45%!\" - TechStart Inc.</p><p>⭐⭐⭐⭐⭐ \"Professional, responsive, and incredibly talented. Highly recommend their services.\" - Global Solutions Ltd.</p></div>",
-                    "FAQ": "<p><strong>Q: How long does it take to build a website?</strong><br>A: Typically 4-6 weeks depending on complexity and feedback cycles.</p><p><strong>Q: Do you offer maintenance plans?</strong><br>A: Yes, we offer various maintenance packages to keep your site secure and up-to-date.</p>"
-                };
-            } else {
-                // General website
-                sampleData = {
-                    "Overview": "Example.com is a global technology company specializing in innovative solutions for business and consumer markets. With a focus on sustainability and cutting-edge research, the company has established itself as a leader in its field.",
-                    "Key Points": "<ul><li>Founded in 2005 by tech industry veterans</li><li>Headquarters in San Francisco with offices in 12 countries</li><li>Over 2,000 employees worldwide</li><li>Listed on NASDAQ since 2012</li><li>Committed to carbon neutrality by 2025</li></ul>",
-                    "Products & Services": "<h3>Main Offerings</h3><ul><li>Enterprise Software Solutions</li><li>Cloud Computing Infrastructure</li><li>Cybersecurity Services</li><li>Data Analytics Platforms</li><li>Consumer Technology Products</li></ul>",
-                    "Related Topics": "<ul><li>Technology Innovation</li><li>Corporate Sustainability</li><li>Digital Transformation</li><li>Artificial Intelligence Applications</li><li>Tech Industry Trends</li></ul>",
-                    "Contact Information": "<p><strong>Main Office:</strong> 123 Tech Plaza, San Francisco, CA 94105</p><p><strong>Phone:</strong> (555) 123-4567</p><p><strong>Email:</strong> info@example.com</p><p><strong>Support:</strong> support@example.com</p>"
-                };
+// Validate URL
+function isValidUrl(string) {
+    try {
+        new URL(string);
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
+// Show error message
+function showError(message) {
+    errorMessage.textContent = message;
+    errorMessage.style.display = 'block';
+}
+
+// Display generated tabs from AI
+function displayGeneratedTabs(data, url) {
+    // Clear previous content
+    tabsNav.innerHTML = '';
+    tabContents.innerHTML = '';
+    
+    // Check if data exists and is in expected format
+    if (!data || (!Array.isArray(data) && typeof data !== 'object')) {
+        showError('Received invalid data format from API');
+        return;
+    }
+    
+    // Show tabs preview
+    initialMessage.style.display = 'none';
+    tabsPreview.style.display = 'block';
+    
+    // Transform data into the expected format for tabs
+    let tabsData = {};
+    
+    // Handle different potential data formats from OpenAI
+    if (Array.isArray(data)) {
+        if (data[0] && typeof data[0] === 'object' && (data[0].title || data[0].name)) {
+            // Format: [{title/name: "Tab Title", content: "Tab Content"}, ...]
+            data.forEach(tab => {
+                const title = tab.title || tab.name;
+                tabsData[title] = tab.content;
+            });
+        } else if (data[0] && typeof data[0] === 'string' && data.length % 2 === 0) {
+            // Format: ["Title1", "Content1", "Title2", "Content2", ...]
+            for (let i = 0; i < data.length; i += 2) {
+                tabsData[data[i]] = data[i+1];
             }
-            
-            // Show tabs preview
-            initialMessage.style.display = 'none';
-            tabsPreview.style.display = 'block';
-            
-            // Create tabs
-            let isFirstTab = true;
-            
-            for (const [tabName, content] of Object.entries(sampleData)) {
-                // Create tab button
-                const tab = document.createElement('button');
-                tab.className = `tab ${isFirstTab ? 'active' : ''}`;
-                tab.textContent = tabName;
-                tab.dataset.tab = tabName.toLowerCase().replace(/\s+/g, '-');
-                
-                // Create tab content
-                const tabContent = document.createElement('div');
-                tabContent.className = `tab-content ${isFirstTab ? 'active' : ''}`;
-                tabContent.id = tabName.toLowerCase().replace(/\s+/g, '-');
-                tabContent.innerHTML = content;
-                
-                // Add to DOM
-                tabsNav.appendChild(tab);
-                tabContents.appendChild(tabContent);
-                
-                // Add click event for tab
-                tab.addEventListener('click', function() {
-                    // Remove active class from all tabs
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    
-                    // Add active class to this tab
-                    this.classList.add('active');
-                    document.getElementById(this.dataset.tab).classList.add('active');
-                });
-                
-                isFirstTab = false;
-            }
-            
-            // Generate and show embed code
-            generateEmbedCode(sampleData, url);
-            codeSection.style.display = 'block';
+        } else {
+            // Fallback: create numbered tabs
+            data.forEach((content, index) => {
+                tabsData[`Tab ${index + 1}`] = content;
+            });
         }
+    } else if (typeof data === 'object') {
+        // Format: {title1: content1, title2: content2, ...}
+        tabsData = data;
+    }
+    
+    // Create tabs
+    let isFirstTab = true;
+    for (const [tabName, content] of Object.entries(tabsData)) {
+        // Create tab button
+        const tab = document.createElement('button');
+        tab.className = `tab ${isFirstTab ? 'active' : ''}`;
+        tab.textContent = tabName;
+        tab.dataset.tab = tabName.toLowerCase().replace(/\s+/g, '-');
+        
+        // Create tab content
+        const tabContent = document.createElement('div');
+        tabContent.className = `tab-content ${isFirstTab ? 'active' : ''}`;
+        tabContent.id = tabName.toLowerCase().replace(/\s+/g, '-');
+        tabContent.innerHTML = content;
+        
+        // Add to DOM
+        tabsNav.appendChild(tab);
+        tabContents.appendChild(tabContent);
+        
+        // Add click event for tab
+        tab.addEventListener('click', function() {
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            // Add active class to this tab
+            this.classList.add('active');
+            document.getElementById(this.dataset.tab).classList.add('active');
+        });
+        
+        isFirstTab = false;
+    }
+    
+    // Generate and show embed code
+    generateEmbedCode(tabsData, url);
+    codeSection.style.display = 'block';
+}
 
-        // Generate embed code
-        function generateEmbedCode(data, url) {
-            // Create base HTML structure
-            let tabButtons = '';
-            let tabContents = '';
+// Display sample data (for demo)
+function displaySampleData(url, contentType) {
+    // Clear previous content
+    tabsNav.innerHTML = '';
+    tabContents.innerHTML = '';
+    
+    // Create sample data based on content type
+    let sampleData;
+    
+    if (contentType === 'product') {
+        sampleData = {
+            "Overview": "The Smart Fitness Watch X1 is the ultimate fitness companion, featuring advanced health monitoring, workout tracking, and smart notifications. With its sleek design and long battery life, it's perfect for active lifestyles.",
+            "Features": "<ul><li>24/7 heart rate monitoring</li><li>Sleep quality analysis</li><li>50+ workout modes</li><li>Water resistant up to 50m</li><li>5-day battery life</li><li>Smart notifications from your phone</li></ul>",
+            "Specifications": "<table style='width:100%; border-collapse: collapse;'><tr><th style='text-align:left; padding:8px; border-bottom:1px solid #ddd;'>Specification</th><th style='text-align:left; padding:8px; border-bottom:1px solid #ddd;'>Value</th></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Display</td><td style='padding:8px; border-bottom:1px solid #ddd;'>1.3\" AMOLED Touchscreen</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Battery Life</td><td style='padding:8px; border-bottom:1px solid #ddd;'>Up to 5 days</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Water Resistance</td><td style='padding:8px; border-bottom:1px solid #ddd;'>5 ATM (50m)</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Connectivity</td><td style='padding:8px; border-bottom:1px solid #ddd;'>Bluetooth 5.0, WiFi</td></tr><tr><td style='padding:8px; border-bottom:1px solid #ddd;'>Sensors</td><td style='padding:8px; border-bottom:1px solid #ddd;'>Heart rate, accelerometer, gyroscope, altimeter</td></tr></table>",
+            "Reviews": "<div><p>⭐⭐⭐⭐⭐ \"The best fitness watch I've ever owned! Battery life is amazing.\" - John D.</p><p>⭐⭐⭐⭐ \"Great features and accurate tracking, but the app could be more intuitive.\" - Sarah M.</p><p>⭐⭐⭐⭐⭐ \"Perfect for swimming and running. Highly recommend!\" - Michael T.</p></div>"
+        };
+    } else if (contentType === 'article') {
+        sampleData = {
+            "Overview": "This comprehensive guide explores practical, everyday actions you can take to reduce your environmental impact and live more sustainably. From energy conservation to mindful consumption, these tips are both impactful and accessible.",
+            "Key Points": "<h3>Key Takeaways</h3><ul><li>Small changes in daily habits can significantly reduce your carbon footprint</li><li>Sustainable living often leads to cost savings</li><li>Community involvement amplifies individual environmental efforts</li><li>Mindful consumption is the foundation of sustainable living</li></ul>",
+            "Details": "<h3>Topics Covered</h3><ul><li>Energy conservation at home</li><li>Reducing food waste</li><li>Sustainable transportation options</li><li>Ethical shopping practices</li><li>Water conservation techniques</li><li>Community environmental initiatives</li></ul>",
+            "Related Topics": "<ul><li>Climate Change Mitigation</li><li>Zero Waste Movement</li><li>Renewable Energy Solutions</li><li>Sustainable Fashion</li><li>Plant-Based Diets</li></ul>",
+            "FAQ": "<p><strong>Q: What is the single most effective way to reduce my carbon footprint?</strong><br>A: While there's no one-size-fits-all answer, reducing meat consumption and minimizing car travel typically offer the biggest impact for most individuals.</p><p><strong>Q: How can I practice sustainable living on a budget?</strong><br>A: Focus on reducing consumption rather than buying new 'eco' products. Using less, repairing items, and buying secondhand are all budget-friendly sustainable practices.</p>"
+        };
+    } else if (contentType === 'service') {
+        sampleData = {
+            "Overview": "Our professional website design and development service delivers stunning, functional websites tailored to your business needs. With a focus on user experience, SEO, and mobile responsiveness, we help your business establish a powerful online presence.",
+            "Features": "<h3>Service Highlights</h3><ul><li>Custom design tailored to your brand</li><li>Responsive mobile-first approach</li><li>SEO-optimized structure</li><li>Fast loading performance</li><li>Secure implementation</li><li>Content management system integration</li></ul>",
+            "Process": "<h3>Our Approach</h3><ol><li><strong>Discovery:</strong> Understanding your business goals and requirements</li><li><strong>Planning:</strong> Sitemap and wireframe development</li><li><strong>Design:</strong> Creating visual mockups</li><li><strong>Development:</strong> Building the functional website</li><li><strong>Testing:</strong> Ensuring everything works perfectly</li><li><strong>Launch:</strong> Going live with your new website</li></ol>",
+            "Testimonials": "<div><p>⭐⭐⭐⭐⭐ \"The team delivered beyond our expectations. Our new website has increased conversions by 45%!\" - TechStart Inc.</p><p>⭐⭐⭐⭐⭐ \"Professional, responsive, and incredibly talented. Highly recommend their services.\" - Global Solutions Ltd.</p></div>",
+            "FAQ": "<p><strong>Q: How long does it take to build a website?</strong><br>A: Typically 4-6 weeks depending on complexity and feedback cycles.</p><p><strong>Q: Do you offer maintenance plans?</strong><br>A: Yes, we offer various maintenance packages to keep your site secure and up-to-date.</p>"
+        };
+    } else {
+        // General website
+        sampleData = {
+            "Overview": "Example.com is a global technology company specializing in innovative solutions for business and consumer markets. With a focus on sustainability and cutting-edge research, the company has established itself as a leader in its field.",
+            "Key Points": "<ul><li>Founded in 2005 by tech industry veterans</li><li>Headquarters in San Francisco with offices in 12 countries</li><li>Over 2,000 employees worldwide</li><li>Listed on NASDAQ since 2012</li><li>Committed to carbon neutrality by 2025</li></ul>",
+            "Products & Services": "<h3>Main Offerings</h3><ul><li>Enterprise Software Solutions</li><li>Cloud Computing Infrastructure</li><li>Cybersecurity Services</li><li>Data Analytics Platforms</li><li>Consumer Technology Products</li></ul>",
+            "Related Topics": "<ul><li>Technology Innovation</li><li>Corporate Sustainability</li><li>Digital Transformation</li><li>Artificial Intelligence Applications</li><li>Tech Industry Trends</li></ul>",
+            "Contact Information": "<p><strong>Main Office:</strong> 123 Tech Plaza, San Francisco, CA 94105</p><p><strong>Phone:</strong> (555) 123-4567</p><p><strong>Email:</strong> info@example.com</p><p><strong>Support:</strong> support@example.com</p>"
+        };
+    }
+    
+    // Show tabs preview
+    initialMessage.style.display = 'none';
+    tabsPreview.style.display = 'block';
+    
+    // Create tabs
+    let isFirstTab = true;
+    
+    for (const [tabName, content] of Object.entries(sampleData)) {
+        // Create tab button
+        const tab = document.createElement('button');
+        tab.className = `tab ${isFirstTab ? 'active' : ''}`;
+        tab.textContent = tabName;
+        tab.dataset.tab = tabName.toLowerCase().replace(/\s+/g, '-');
+        
+        // Create tab content
+        const tabContent = document.createElement('div');
+        tabContent.className = `tab-content ${isFirstTab ? 'active' : ''}`;
+        tabContent.id = tabName.toLowerCase().replace(/\s+/g, '-');
+        tabContent.innerHTML = content;
+        
+        // Add to DOM
+        tabsNav.appendChild(tab);
+        tabContents.appendChild(tabContent);
+        
+        // Add click event for tab
+        tab.addEventListener('click', function() {
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             
-            // Generate tab buttons and content divs
-            for (const [tabName, content] of Object.entries(data)) {
-                const tabId = tabName.toLowerCase().replace(/\s+/g, '-');
-                const isFirst = tabButtons === ''; // First tab
-                
-                tabButtons += `    <button class="itab-button${isFirst ? ' active' : ''}" data-tab="${tabId}">${tabName}</button>\n`;
-                tabContents += `    <div class="itab-pane${isFirst ? ' active' : ''}" id="${tabId}">\n`;
-                tabContents += `      <!-- ${tabName} content -->\n`;
-                tabContents += `    </div>\n`;
-            }
-            
-            // Combine everything into final embed code
-            const embedCode = `<!-- iTabs Embed Code for ${url} -->
+            // Add active class to this tab
+            this.classList.add('active');
+            document.getElementById(this.dataset.tab).classList.add('active');
+        });
+        
+        isFirstTab = false;
+    }
+    
+    // Generate and show embed code
+    generateEmbedCode(sampleData, url);
+    codeSection.style.display = 'block';
+}
+
+// Generate embed code
+function generateEmbedCode(data, url) {
+    // Create base HTML structure
+    let tabButtons = '';
+    let tabContents = '';
+    
+    // Generate tab buttons and content divs
+    for (const [tabName, content] of Object.entries(data)) {
+        const tabId = tabName.toLowerCase().replace(/\s+/g, '-');
+        const isFirst = tabButtons === ''; // First tab
+        
+        tabButtons += `    <button class="itab-button${isFirst ? ' active' : ''}" data-tab="${tabId}">${tabName}</button>\n`;
+        tabContents += `    <div class="itab-pane${isFirst ? ' active' : ''}" id="${tabId}">\n`;
+        tabContents += `      ${content}\n`;
+        tabContents += `    </div>\n`;
+    }
+    
+    // Combine everything into final embed code
+    const embedCode = `<!-- iTabs Embed Code for ${url} -->
 <div class="itabs-container" data-itabs-id="${Date.now()}">
   <div class="itabs-nav">
 ${tabButtons}  </div>
@@ -495,26 +605,27 @@ ${tabButtons}  </div>
 ${tabContents}  </div>
 </div>
 <script src="https://itabs.co/embed.js"></script>`;
-            
-            generatedCode.textContent = embedCode;
-        }
+    
+    generatedCode.textContent = embedCode;
+}
 
-        // Copy code functionality
-        copyCode.addEventListener('click', function() {
-            const textArea = document.createElement('textarea');
-            textArea.value = generatedCode.textContent;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            
-            // Show success message
-            copySuccess.style.display = 'block';
-            setTimeout(function() {
-                copySuccess.style.display = 'none';
-            }, 2000);
-        });
+// Copy code functionality
+copyCode.addEventListener('click', function() {
+    const textArea = document.createElement('textarea');
+    textArea.value = generatedCode.textContent;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    
+    // Show success message
+    copySuccess.style.display = 'block';
+    setTimeout(function() {
+        copySuccess.style.display = 'none';
+    }, 2000);
+});
     </script>
 </body>
-</html><
-           br>
+</html>
+
+        
